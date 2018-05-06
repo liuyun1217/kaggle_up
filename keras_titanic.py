@@ -25,7 +25,9 @@ from keras import regularizers
 model.add(Dense(units=32,activation='relu',input_dim=7))
 model.add(Dense(units=1,activation='sigmoid',kernel_regularizer=regularizers.l2(0.01)))
 #model.add(Dense(units=1,activation='selu',kernel_regularizer=regularizers.l2(0.01)))
-model.compile(loss='binary_crossentropy',
+#model.compile(loss='binary_crossentropy',
+model_para = keras.utils.multi_gpu_model(model, gpus=2)
+model_para.compile(loss='binary_crossentropy',
               optimizer='Adam',
               metrics=['accuracy'])
 
@@ -87,7 +89,8 @@ y = train_np[:, 0]
 # X即特征属性值
 X = train_np[:, 1:]
 
-model.fit(X, y, epochs=100, batch_size=1)
+#model.fit(X, y, epochs=100, batch_size=1)
+model_para.fit(X, y, epochs=100, batch_size=1)
 
 data_test = pd.read_csv(test_file)
 data_test.loc[ (data_test.Fare.isnull()), 'Fare' ] = 0
@@ -117,7 +120,8 @@ df_test['Fare_scaled']  = preprocessing.scale(df_test['Fare'])
 
 test = df_test.filter(regex='Age_.*|Sex_.*|Pclass_.*|Fare_.*')
 
-classes = model.predict(test, batch_size=128)
+#classes = model.predict(test, batch_size=128)
+classes = model_para.predict(test, batch_size=128)
 cls = np.transpose(classes)[0]>0.5
 #print(np.transpose(classes)[0])
 #print(cls)
