@@ -30,9 +30,9 @@ model = Sequential()
 from keras.layers import Dense
 from keras import regularizers
 
-model.add(Dense(units=100,activation='relu',input_dim=9))
-model.add(Dense(units=100,activation='tanh',input_dim=9))
-model.add(Dense(units=100,activation='softplus',input_dim=9))
+model.add(Dense(units=100,activation='relu',input_dim=12))
+model.add(Dense(units=100,activation='tanh',input_dim=12))
+model.add(Dense(units=100,activation='softplus',input_dim=12))
 model.add(Dense(units=1,activation='sigmoid',kernel_regularizer=regularizers.l2(0.01)))
 #model.add(Dense(units=1,activation='selu',kernel_regularizer=regularizers.l2(0.01)))
 #model.compile(loss='binary_crossentropy',
@@ -94,7 +94,7 @@ df.drop(['Pclass', 'Name', 'Sex', 'Ticket', 'Cabin', 'Embarked'], axis=1, inplac
 df['Age_scaled']  = preprocessing.scale(df['Age'])
 df['Fare_scaled']  = preprocessing.scale(df['Fare'])
 #print(df.describe())
-train_df = df.filter(regex='Survived|Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin')
+train_df = df.filter(regex='Survived|Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin_.*|Embarked_.*')
 train_np = train_df.as_matrix()
 # y即Survival结果
 y = train_np[:, 0]
@@ -102,7 +102,7 @@ y = train_np[:, 0]
 X = train_np[:, 1:]
 
 
-model_para.fit(X, y, epochs=100, batch_size=1)
+model_para.fit(X, y, epochs=1000, batch_size=50)
 
 data_test = pd.read_csv(test_file)
 data_test.loc[ (data_test.Fare.isnull()), 'Fare' ] = 0
@@ -131,7 +131,7 @@ df_test['Age_scaled']  = preprocessing.scale(df_test['Age'])
 df_test['Fare_scaled']  = preprocessing.scale(df_test['Fare'])
 #print(data_test)
 
-test = df_test.filter(regex='Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin')
+test = df_test.filter(regex='Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin_.*|Embarked_.*')
 #print(test)
 
 #classes = model.predict(test, batch_size=128)
