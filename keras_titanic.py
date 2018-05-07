@@ -102,7 +102,7 @@ y = train_np[:, 0]
 X = train_np[:, 1:]
 
 
-model_para.fit(X, y, epochs=1000, batch_size=50)
+model_para.fit(X, y, epochs=5000, batch_size=50)
 
 data_test = pd.read_csv(test_file)
 data_test.loc[ (data_test.Fare.isnull()), 'Fare' ] = 0
