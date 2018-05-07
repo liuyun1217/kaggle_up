@@ -1,4 +1,5 @@
-import kaggle
+#import kaggle
+import os
 import csv
 import pandas as pd #数据分析
 import numpy as np #科学计算
@@ -8,6 +9,13 @@ import sklearn.preprocessing as preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import linear_model
 import keras
+from keras.utils import multi_gpu_model
+
+import tensorflow as tf
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+
+
 
 data_base_path = './competitions/titanic/'
 test_file = data_base_path+'test.csv'
@@ -22,11 +30,14 @@ model = Sequential()
 from keras.layers import Dense
 from keras import regularizers
 
-model.add(Dense(units=32,activation='relu',input_dim=7))
+model.add(Dense(units=100,activation='relu',input_dim=9))
+model.add(Dense(units=100,activation='tanh',input_dim=9))
+model.add(Dense(units=100,activation='softplus',input_dim=9))
 model.add(Dense(units=1,activation='sigmoid',kernel_regularizer=regularizers.l2(0.01)))
 #model.add(Dense(units=1,activation='selu',kernel_regularizer=regularizers.l2(0.01)))
 #model.compile(loss='binary_crossentropy',
-model_para = keras.utils.multi_gpu_model(model, gpus=2)
+model = multi_gpu_model(model,2)
+model_para = model
 model_para.compile(loss='binary_crossentropy',
               optimizer='Adam',
               metrics=['accuracy'])
@@ -61,35 +72,36 @@ def set_missing_ages(df):
     return df, rfr
 
 def set_Cabin_type(df):
-    df.loc[ (df.Cabin.notnull()), 'Cabin' ] = "Yes"
-    df.loc[ (df.Cabin.isnull()), 'Cabin' ] = "No"
+    df.loc[ (df.Cabin.notnull()), 'Cabin' ] = 1
+    df.loc[ (df.Cabin.isnull()), 'Cabin' ] = 0
     return df
 
 data_train, rfr = set_missing_ages(data_train)
 data_train = set_Cabin_type(data_train)
+#print(data_train['Cabin'])
 
 
+
+dummies_Cabin = pd.get_dummies(data_train['Cabin'], prefix= 'Cabin')
 dummies_Sex = pd.get_dummies(data_train['Sex'], prefix= 'Sex')
 dummies_Pclass = pd.get_dummies(data_train['Pclass'], prefix= 'Pclass')
-df = pd.concat([data_train,dummies_Sex,dummies_Pclass],axis=1)
-df.drop(['Sex','Pclass'],axis=1,inplace=True)
+dummies_Embarked = pd.get_dummies(data_train['Embarked'], prefix= 'Embarked')
+#df = pd.concat([data_train,dummies_Sex,dummies_Pclass,dummies_Cabin],axis=1)
+df = pd.concat([data_train, dummies_Cabin, dummies_Embarked, dummies_Sex, dummies_Pclass], axis=1)
+#df.drop(['Sex','Pclass'],axis=1,inplace=True)
+df.drop(['Pclass', 'Name', 'Sex', 'Ticket', 'Cabin', 'Embarked'], axis=1, inplace=True)
 
 df['Age_scaled']  = preprocessing.scale(df['Age'])
 df['Fare_scaled']  = preprocessing.scale(df['Fare'])
-#scaler = preprocessing.StandardScaler()
-#age_scale_param = scaler.fit(df['Age'])
-#df['Age_scaled'] = scaler.fit_transform(df['Age'], age_scale_param)
-# fare_scale_param = scaler.fit(df['Fare'])
-# df['Fare_scaled'] = scaler.fit_transform(df['Fare'], fare_scale_param)
 #print(df.describe())
-train_df = df.filter(regex='Survived|Age_.*|Sex_.*|Pclass_.*|Fare_.*')
+train_df = df.filter(regex='Survived|Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin')
 train_np = train_df.as_matrix()
 # y即Survival结果
 y = train_np[:, 0]
 # X即特征属性值
 X = train_np[:, 1:]
 
-#model.fit(X, y, epochs=100, batch_size=1)
+
 model_para.fit(X, y, epochs=100, batch_size=1)
 
 data_test = pd.read_csv(test_file)
@@ -117,8 +129,10 @@ df_test.drop(['Pclass', 'Name', 'Sex', 'Ticket', 'Cabin', 'Embarked'], axis=1, i
 
 df_test['Age_scaled']  = preprocessing.scale(df_test['Age'])
 df_test['Fare_scaled']  = preprocessing.scale(df_test['Fare'])
+#print(data_test)
 
-test = df_test.filter(regex='Age_.*|Sex_.*|Pclass_.*|Fare_.*')
+test = df_test.filter(regex='Age_.*|Sex_.*|Pclass_.*|Fare_.*|Cabin')
+#print(test)
 
 #classes = model.predict(test, batch_size=128)
 classes = model_para.predict(test, batch_size=128)
